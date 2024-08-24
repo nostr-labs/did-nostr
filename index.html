@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Nostr DID Method Specification</title>
+    <script
+      src="https://www.w3.org/Tools/respec/respec-w3c-common"
+      class="remove"
+    ></script>
+    <script class="remove">
+      const respecConfig = {
+        specStatus: 'unofficial',
+        editors: [
+          {
+            name: 'Melvin Carvalho',
+            url: 'https://melvincarvalho.com/#me'
+          }
+        ],
+        wg: 'W3C Nostr Community Group',
+
+        // URI of the public WG page
+        wgURI: 'https://www.w3.org/community/nostr/',
+        processVersion: 2017,
+        edDraftURI: 'https://github.com/nostrcg/did-nostr',
+        shortName: 'did-nostr',
+        logos: [
+          {
+            src: 'https://avatars.githubusercontent.com/u/131810998?s=200&v=4',
+            url: 'https://avatars.githubusercontent.com/u/131810998?s=200&v=4',
+            alt: 'W3C',
+            width: 100,
+            height: 100,
+            id: 'w3c'
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <section id="abstract">
+      <p>
+        This specification defines a Decentralized Identifier (DID)[[DID-CORE]]
+        method for the Nostr <a href="https://nostr.com/">network</a>. Nostr is
+        an open-source protocol that utilizes the W3C WebSockets standard.
+      </p>
+    </section>
+    <section id="sotd"></section>
+    <!-- introduction -->
+    <section class="informative">
+      <h2>Introduction</h2>
+    </section>
+    <section>
+      <h2>Core Concepts</h2>
+      <section>
+        <h3>Nostr DID Scheme</h3>
+        <p>
+          The Nostr DID scheme `did:nostr:pubkey` is based on the encoding of a
+          public key. The public key is represented as a 64-character, lowercase
+          string. The prefix <code>did:nostr</code> should be in lowercase, as
+          per the DID specification.
+        </p>
+
+        <p>
+          Example Nostr DID:
+          <code
+            >did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2</code
+          >.
+        </p>
+      </section>
+      <section>
+        <h3>Example DID</h3>
+        <p>The following is a template for Nostr DIDs:</p>
+        <pre class="example">
+{
+    "@context": ["https://w3id.org/did", "https://w3id.org/nostr/context"],
+    "id": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2",
+    "publicKey": [
+       {
+            "id": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2#key1",
+            "controller": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2",
+            "type": "SchnorrVerification2023"
+        }
+    ],
+    "authentication": ["#key1"],
+    "assertionMethod": ["#key1"]
+}
+  </pre
+        >
+        <p>A resolver MUST retrieve events from relays.</p>
+      </section>
+      <section>
+        <h3>Additional Terminology</h3>
+        <p>The term <dfn>relay</dfn> refers to a Nostr relay.</p>
+      </section>
+    </section>
+    <section>
+      <h2>Operations</h2>
+      <section>
+        <h3>Create (Register)</h3>
+        Creating a did:nostr value consists of generating a cryptographic key
+        pair and encoding the public key as a 64-character lowercase string.
+      </section>
+
+      <section>
+        <h3>Read (Resolve)</h3>
+        <p>
+          Reading a did:key value is a matter of deterministically expanding the
+          value to a DID Document. This process is described in Section § 3.1
+          Create.
+        </p>
+      </section>
+
+      <section>
+        <h3>Update (Replace)</h3>
+        <p>This DID Method does not support updating the DID Document.</p>
+      </section>
+
+      <section>
+        <h3>Delete (Revoke)</h3>
+        This DID Method does not support deactivating the DID Document.
+        <p></p>
+      </section>
+    </section>
+
+    <section>
+      <h2>Security & Privacy</h2>
+      <section>
+        <h3>Security Considerations</h3>
+        <p>
+          DID method specifications MUST include their own Security
+          Considerations sections. This section MUST consider all the
+          requirements mentioned in section 5 of [RFC3552] (page 27) for the DID
+          operations defined in the specification, including eavesdropping,
+          replay, message insertion, deletion, modification, and
+          man-in-the-middle. Potential denial of service attacks MUST be
+          identified as well.
+        </p>
+        <p>
+          A full list of requirements for this section can be found at
+          <a href="https://www.w3.org/TR/did-core/#security-requirements">
+            W3C Decentralized Identifiers 7.3</a
+          >
+        </p>
+      </section>
+      <section>
+        <h3>Privacy Considerations</h3>
+        <p>
+          DID method specifications MUST include their own Privacy
+          Considerations sections to discuss any subsection of section 5 of
+          [RFC6973] that could apply in a method-specific manner. The
+          subsections to consider are: surveillance, stored data compromise,
+          unsolicited traffic, misattribution, correlation, identification,
+          secondary use, disclosure, exclusion.
+        </p>
+        <p>
+          A full list of requirements for this section can be found at
+          <a href="https://www.w3.org/TR/did-core/#privacy-requirements">
+            W3C Decentralized Identifiers 7.4</a
+          >
+        </p>
+      </section>
+    </section>
+    <section>
+      <h2>Reference Implementations</h2>
+      <p>
+        Block, Inc. is developing a reference implementation in Rust at
+        <a href="https://github.com/TBD54566975/did-nostr"
+          >https://github.com/TBD54566975/did-nostr</a
+        >.
+      </p>
+    </section>
+
+    <section>
+      <h2>Resources</h2>
+    </section>
+  </body>
+</html>
