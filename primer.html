@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>A Primer for did:nostr</title>
+    <!--
+      ReSpec is vendored same-origin (see issue #95). Loading it cross-origin
+      from w3.org is blocked in some browsers (e.g. Brave) with
+      ERR_BLOCKED_BY_RESPONSE.NotSameOrigin, leaving the spec as raw source.
+      Refresh this file from https://www.w3.org/Tools/respec/respec-w3c to update.
+    -->
+    <script
+      src="respec-w3c.js"
+      class="remove"
+    ></script>
+    <script class="remove">
+      const respecConfig = {
+        specStatus: 'CG-DRAFT',
+        group: 'nostr',
+        latestVersion: 'https://nostrcg.github.io/did-nostr/primer.html',
+        editors: [
+          {
+            name: 'Melvin Carvalho',
+            url: 'https://melvincarvalho.com/#me'
+          }
+        ],
+        authors: [
+          {
+            name: 'Melvin Carvalho',
+            url: 'https://melvincarvalho.com/#me'
+          }
+        ],
+        shortName: 'did-nostr-primer',
+        github: 'https://github.com/nostrcg/did-nostr',
+        localBiblio: {
+          "CID": {
+            title: "Controlled Identifiers (CIDs) v1.0",
+            href: "https://www.w3.org/TR/cid-1.0/",
+            status: "REC",
+            publisher: "W3C",
+            date: "2025-05-15"
+          },
+          "DID-NOSTR": {
+            title: "Nostr DID Method Specification",
+            href: "https://nostrcg.github.io/did-nostr/",
+            publisher: "W3C Nostr Community Group"
+          },
+          "NIP-01": {
+            title: "NIP-01: Basic protocol flow description",
+            href: "https://github.com/nostr-protocol/nips/blob/master/01.md",
+            publisher: "Nostr protocol"
+          },
+          "NIP-05": {
+            title: "NIP-05: Mapping Nostr keys to DNS-based internet identifiers",
+            href: "https://github.com/nostr-protocol/nips/blob/master/05.md",
+            publisher: "Nostr protocol"
+          },
+          "BIP-340": {
+            title: "BIP-340: Schnorr Signatures for secp256k1",
+            href: "https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki",
+            publisher: "Bitcoin Improvement Proposals"
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <section id="abstract">
+      <p>
+        A Nostr keypair is already a decentralized identifier. The <code>did:nostr</code> method
+        [[DID-NOSTR]] gives it a W3C DID [[DID-CORE]] form: the identifier <em>is</em> the public
+        key, the DID document can be generated from it offline, and everything else &mdash;
+        profile, relays, social graph &mdash; is optional enrichment derived from signed Nostr
+        events. This primer introduces the method to readers from the DID and Verifiable
+        Credentials ecosystem who do not know Nostr, and to readers from the Nostr ecosystem who
+        do not know DIDs.
+      </p>
+    </section>
+    <section id="sotd">
+      <p>
+        This document is <strong>informative</strong> (non-normative). It complements the
+        normative <a href="https://nostrcg.github.io/did-nostr/">Nostr DID Method
+        Specification</a> [[DID-NOSTR]]; where the two differ, the specification governs.
+      </p>
+      <p>
+        This document is a work in progress and may be updated, replaced, or obsoleted by other
+        documents at any time. Feedback and contributions are encouraged through the
+        <a href="https://github.com/nostrcg/did-nostr">GitHub repository</a>.
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>Introduction</h2>
+      <p>
+        This primer is written for two audiences: people from the DID / Verifiable Credentials
+        world who don't know Nostr, and people from the Nostr world who don't know DIDs. It
+        answers the questions implementers actually ask &mdash; several come straight from the
+        <a href="https://lists.w3.org/Archives/Public/public-credentials/2026Jul/0001.html">CCG
+        mailing-list thread</a> on the v0.1.0 announcement &mdash; and walks through the
+        identifier, the DID document, resolution, and updates.
+      </p>
+      <p>
+        The design in one sentence: the baseline is a pure function of the public key (no
+        network, no registry, no domain), and every networked feature layers on top as optional,
+        verifiable enrichment.
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>Nostr, for DID implementers</h2>
+      <p>
+        Nostr is a pub/sub protocol over WebSockets. Users hold a secp256k1 keypair, sign small
+        JSON <em>events</em> (a post, a profile, a contact list), and publish them to
+        <em>relays</em> &mdash; simple, interchangeable servers that store and forward events.
+        Clients can read a user's events back from <em>any</em> relay that has a copy; no relay
+        is authoritative, and relays can be added or dropped freely. Every event carries the
+        author's public key and a BIP-340 [[BIP-340]] Schnorr signature, so authenticity is
+        checked by the reader, not trusted from the server.
+      </p>
+      <p>
+        Events have a <code>kind</code> number. Three kinds matter for this method:
+      </p>
+      <table class="simple">
+        <thead>
+          <tr><th>Kind</th><th>Contents</th><th>Feeds into the DID document as</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0</td><td>profile metadata (name, about, picture)</td><td><code>profile</code></td></tr>
+          <tr><td>3</td><td>contact list</td><td><code>follows</code></td></tr>
+          <tr><td>10002</td><td>preferred relays</td><td><code>service</code> (type <code>Relay</code>)</td></tr>
+        </tbody>
+      </table>
+      <p>
+        NIP-01 [[NIP-01]] is the short technical overview of the protocol; for a higher-level
+        introduction there is a good
+        <a href="https://www.youtube.com/watch?v=NS5JI-ksaXs">video overview by Jack Dorsey and
+        Rabble</a>.
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>DIDs, for Nostr developers</h2>
+      <p>
+        A <a href="https://www.w3.org/TR/did-core/">Decentralized Identifier</a> [[DID-CORE]]
+        (DID) is a W3C-standard identifier that resolves to a <em>DID document</em> &mdash; a
+        small JSON-LD document describing the identity: its public keys (<em>verification
+        methods</em>), what they may be used for (<em>authentication</em>,
+        <em>assertionMethod</em>), and optional <em>service endpoints</em>. DIDs are the
+        identifier layer used by Verifiable Credentials, Solid / Linked Web Storage, and a
+        growing ecosystem of wallets and resolvers.
+      </p>
+      <p>
+        <code>did:nostr</code> is the bridge: your existing npub, expressed in a form that W3C
+        tooling understands. You don't register anything anywhere &mdash; if you have a Nostr
+        key, you already have a <code>did:nostr</code>.
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>The identifier</h2>
+      <pre>did:nostr:&lt;64-character lowercase hex public key&gt;</pre>
+      <p>For example:</p>
+      <pre>did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2</pre>
+      <p>
+        The identifier uses the <strong>raw hex</strong> public key, not the Bech32
+        <code>npub</code> form. The two encode the same key; <code>npub</code> is display-only:
+      </p>
+      <ul>
+        <li>Raw key: <code>124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2</code></li>
+        <li>DID: <code>did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2</code></li>
+        <li>Display npub: <code>npub1cpxejnc58zpcuyh0pt8gvkzpv34qxceu0sqp7jec2nk9nut7p5zs4zyx4c</code></li>
+      </ul>
+      <p>
+        Because the key is <em>in</em> the identifier, the binding between identifier and key is
+        permanent &mdash; there is no registry to consult and nothing to squat. (The flip side
+        &mdash; what happens if the key is compromised &mdash; is covered in
+        <a href="#limitations"></a>.)
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>The DID document</h2>
+      <p>
+        The minimal document is a pure function of the public key. Given only the identifier, any
+        resolver produces:
+      </p>
+      <pre class="example" title="Minimal DID document (offline resolution)">
+{
+    "@context": ["https://www.w3.org/ns/did/v1", "https://www.w3.org/ns/cid/v1", "https://w3id.org/nostr/context"],
+    "id": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2",
+    "type": "DIDNostr",
+    "verificationMethod": [
+        {
+            "id": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2#key1",
+            "type": "Multikey",
+            "controller": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2",
+            "publicKeyMultibase": "fe70102124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2"
+        }
+    ],
+    "authentication": ["#key1"],
+    "assertionMethod": ["#key1"]
+}
+      </pre>
+      <p>Reading it line by line:</p>
+      <ul>
+        <li><strong><code>id</code></strong> &mdash; the DID itself.</li>
+        <li>
+          <strong><code>type: "DIDNostr"</code></strong> &mdash; types the document explicitly
+          for linked-data processing (see the
+          <a href="https://github.com/nostrcg/did-nostr/blob/gh-pages/resource-model.md">resource
+          model note</a>).
+        </li>
+        <li>
+          <strong><code>verificationMethod</code></strong> &mdash; the same public key,
+          re-encoded as a <code>Multikey</code> [[CID]]: parity byte <code>02</code> +
+          multicodec prefix <code>e701</code> + the x-only key, multibase-encoded with
+          <code>f</code> (base16-lower). This is what makes the key usable by W3C Data Integrity
+          tooling (see the
+          <a href="https://github.com/nostrcg/did-nostr/blob/gh-pages/parity-model.md">parity
+          model note</a> for the <code>02</code>/<code>03</code> details).
+        </li>
+        <li>
+          <strong><code>authentication</code> / <code>assertionMethod</code></strong> &mdash;
+          the key may be used to log in and to sign claims (e.g. Verifiable Credentials).
+        </li>
+      </ul>
+      <p>
+        An <strong>enriched</strong> document adds material projected from the owner's signed
+        events: <code>service</code> entries for relays (kind 10002), a <code>profile</code>
+        (kind 0), a <code>follows</code> list (kind 3), optional <code>alsoKnownAs</code> links
+        to the same identity elsewhere (a WebID, a fediverse handle, another DID), and a
+        <code>modified</code> timestamp &mdash; the most recent <code>created_at</code> across
+        the signed parts, so consumers can detect staleness.
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>Resolution: an offline core with optional enrichment</h2>
+      <p>
+        This is the part that most often surprises DID implementers, so it is worth stating
+        plainly: <strong>the baseline resolver needs no network at all.</strong>
+      </p>
+      <p>
+        <strong>Layer 0 &mdash; offline (the conformance floor).</strong> Parse the pubkey out
+        of the identifier and construct the minimal document above. Supporting this is a
+        normative requirement of the specification &mdash; every conforming resolver can do it.
+        It already provides full cryptographic functionality &mdash;
+        authentication and signature verification work with no relay, no domain, no lookup.
+      </p>
+      <p>
+        <strong>Layer 1 &mdash; relay enrichment (optional).</strong> Query Nostr relays for the
+        user's kind 0 / 3 / 10002 events, verify their signatures, and project them into the
+        document as <code>profile</code>, <code>follows</code>, and <code>service</code>. Which
+        relays? A local cache, a set of defaults, or relays already discovered for that key
+        &mdash; since events are signed, <em>any</em> relay with a copy is as good as any other.
+      </p>
+      <p>
+        <strong>Layer 2 &mdash; HTTP / <code>.well-known</code> (optional).</strong> Any HTTP
+        host can serve a pre-built document at:
+      </p>
+      <pre>https://&lt;domain&gt;/.well-known/did/nostr/&lt;pubkey&gt;.json</pre>
+      <p>
+        This makes resolution a cacheable HTTP GET &mdash; CDN-friendly, no WebSocket needed
+        &mdash; with normal HTTP caching (<code>ETag</code>, <code>Cache-Control</code>) on top.
+      </p>
+
+      <section>
+        <h3>"How do I know which domain to query?"</h3>
+        <p>
+          You don't have to &mdash; that is the point of the layering. There is no canonical
+          domain for a <code>did:nostr</code>, because the identifier is self-certifying and the
+          baseline document is generated locally (Layer 0). A <code>.well-known</code> host is a
+          <strong>cache, not a root of trust</strong>: anyone can mirror documents, and a
+          consumer can always verify the signed source events or fall back to Layers 0&ndash;1.
+          Domains enter the picture only when you have one in hand &mdash; your own resolver, a
+          mirror you operate or trust, or a hint such as a <code>didResolver</code> field in the
+          user's NIP-05 [[NIP-05]] identifier. If you have no domain, you have lost nothing:
+          resolve offline and enrich from relays.
+        </p>
+      </section>
+
+      <section>
+        <h3>"Are updates guaranteed to reach resolvers?"</h3>
+        <p>
+          No &mdash; and the method is designed so that they don't have to be. Updates happen at
+          the event layer: publishing a newer signed kind 0 / 3 / 10002 event changes what the
+          document projects on the <em>next</em> resolution. Relay propagation is
+          <strong>eventually consistent</strong> &mdash; an event published to one relay reaches
+          others only if someone rebroadcasts it, and a resolver querying a different relay set
+          may see older state for a while. The specification therefore keeps every guarantee on
+          the layer that can honour it:
+        </p>
+        <ul>
+          <li>
+            The <strong>core document</strong> (identifier, verification method) never depends
+            on relay data, so it can never be stale or wrong.
+          </li>
+          <li>
+            The <strong>enrichment</strong> is best-effort and self-describing: each part
+            carries its <code>created_at</code>, the document carries <code>modified</code>
+            (the max across parts), and every part is signed, so a consumer can always tell
+            <em>which</em> state it is looking at and refuse to overwrite newer state with
+            older.
+          </li>
+        </ul>
+        <p>
+          If your application needs stronger freshness, publish to (and resolve from) an
+          overlapping relay set, or serve your own <code>.well-known</code> document &mdash;
+          both are deployment choices, not protocol changes.
+        </p>
+      </section>
+    </section>
+
+    <section class="informative" id="limitations">
+      <h2>What the method does not do (yet)</h2>
+      <p>The identifier is permanently bound to one key, so:</p>
+      <ul>
+        <li>
+          <strong>Key rotation / deactivation</strong> &mdash; no in-method mechanism yet. If
+          the key is lost or compromised there is no in-method recovery. Semantics (e.g.
+          <code>alsoKnownAs</code>-based migration, deactivation signals) are under discussion
+          in <a href="https://github.com/nostrcg/did-nostr/issues/73">issue #73</a>.
+        </li>
+        <li>
+          <strong>Key recovery</strong> &mdash; exploratory, tracked in
+          <a href="https://github.com/nostrcg/did-nostr/issues/137">issue #137</a>.
+        </li>
+      </ul>
+      <p>
+        Until then, key management advice is the standard Nostr advice: guard the private key,
+        back it up, and treat it as the identity.
+      </p>
+    </section>
+
+    <section class="informative">
+      <h2>Try it</h2>
+      <ul>
+        <li>
+          Generate an identity: <code>npx create-agent</code>
+          (<a href="https://github.com/melvincarvalho/create-agent">create-agent</a>)
+        </li>
+        <li>
+          Resolve in code or CLI: the
+          <a href="https://github.com/melvincarvalho/did-nostr"><code>did-nostr</code></a> npm
+          package &mdash; offline, <code>.well-known</code>, and relay resolution, plus a
+          <a href="https://github.com/decentralized-identity/did-resolver">DIF
+          <code>did-resolver</code></a> driver
+        </li>
+        <li>
+          Browse documents visually: the
+          <a href="https://nostrapps.github.io/did-explorer/">DID:nostr Explorer</a>
+        </li>
+        <li>
+          A production <code>.well-known</code> endpoint:
+          <a href="https://nostr.rocks/.well-known/did/nostr/32e1827635450ebb3c5a7d12c1f8e7b2b514439ac10a67eef3d9fd9c5c68e245.json">nostr.rocks
+          resolver</a>
+        </li>
+        <li>
+          Conformance: the
+          <a href="https://github.com/nostrcg/did-nostr/tree/gh-pages/test-vectors">test
+          vectors</a> used by implementations
+        </li>
+      </ul>
+    </section>
+
+    <section class="informative">
+      <h2>Further reading</h2>
+      <ul>
+        <li>
+          <a href="https://nostrcg.github.io/did-nostr/">Nostr DID Method Specification</a>
+          [[DID-NOSTR]] &mdash; the normative text
+        </li>
+        <li>
+          <a href="https://github.com/nostrcg/did-nostr/blob/gh-pages/parity-model.md">Parity
+          and Key Representation in did:nostr</a> &mdash; companion note: x-only keys and
+          Multikey parity
+        </li>
+        <li>
+          <a href="https://github.com/nostrcg/did-nostr/blob/gh-pages/resource-model.md">Resource
+          Model in did:nostr</a> &mdash; companion note: subject vs document, provenance
+        </li>
+        <li>
+          <a href="https://lists.w3.org/Archives/Public/public-credentials/2026Jul/0001.html">CCG
+          thread on v0.1.0</a> &mdash; where these questions were asked
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>
