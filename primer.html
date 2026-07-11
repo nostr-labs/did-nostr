@@ -150,9 +150,9 @@
         growing ecosystem of wallets and resolvers.
       </p>
       <p>
-        <code>did:nostr</code> is the bridge: your existing npub, expressed in a form that W3C
-        tooling understands. You don't register anything anywhere &mdash; if you have a Nostr
-        key, you already have a <code>did:nostr</code>.
+        <code>did:nostr</code> is the bridge: your existing Nostr key, expressed in a form that
+        W3C tooling understands. You don't register anything anywhere &mdash; if you have a
+        Nostr key, you already have a <code>did:nostr</code>.
       </p>
     </section>
 
@@ -162,14 +162,11 @@
       <p>For example:</p>
       <pre>did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2</pre>
       <p>
-        The identifier uses the <strong>raw hex</strong> public key, not the Bech32
-        <code>npub</code> form. The two encode the same key; <code>npub</code> is display-only:
+        The identifier is always the <strong>raw 64-character lowercase hex</strong> public key
+        &mdash; the same form that appears in Nostr events themselves [[NIP-01]]. Bech32
+        encodings such as <code>npub</code> are display conveniences in Nostr clients; they
+        never appear in a <code>did:nostr</code>.
       </p>
-      <ul>
-        <li>Raw key: <code>124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2</code></li>
-        <li>DID: <code>did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2</code></li>
-        <li>Display npub: <code>npub1cpxejnc58zpcuyh0pt8gvkzpv34qxceu0sqp7jec2nk9nut7p5zs4zyx4c</code></li>
-      </ul>
       <p>
         Because the key is <em>in</em> the identifier, the binding between identifier and key is
         permanent &mdash; there is no registry to consult and nothing to squat. (The flip side
