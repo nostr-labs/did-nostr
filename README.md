@@ -148,3 +148,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Resources
 
 View the full specification by opening the [index.html](index.html) file in your browser.
+
+New to did:nostr? Start with the [Primer](https://nostrcg.github.io/did-nostr/primer.html) — a plain-language introduction for both DID and Nostr audiences.
