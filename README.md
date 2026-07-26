@@ -135,7 +135,7 @@ Example mapping:
 
 - Raw public key: `124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2`
 - DID: `did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2`
-- Display npub: `npub1cpxejnc58zpcuyh0pt8gvkzpv34qxceu0sqp7jec2nk9nut7p5zs4zyx4c`
+- Display npub: `npub1zfxql2v5quvzanj6ynadndlkvays9lzz9ppaxy5d8zs2l0hqlhfq8fdyst`
 
 ## License
 
