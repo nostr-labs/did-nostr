@@ -156,7 +156,7 @@
           <p>The following minimal DID document can be generated from the public key alone, without network access:</p>
           <pre class="example">
 {
-    "@context": ["https://www.w3.org/ns/cid/v1", "https://w3id.org/nostr/context"],
+    "@context": ["https://www.w3.org/ns/did/v1", "https://www.w3.org/ns/cid/v1", "https://w3id.org/nostr/context"],
     "id": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2",
     "alsoKnownAs": [
         "https://alice.example.com/#me",
@@ -184,7 +184,7 @@
           <p>When enhanced through relay queries, additional service endpoints can be included:</p>
           <pre class="example">
 {
-    "@context": ["https://www.w3.org/ns/cid/v1", "https://w3id.org/nostr/context"],
+    "@context": ["https://www.w3.org/ns/did/v1", "https://www.w3.org/ns/cid/v1", "https://w3id.org/nostr/context"],
     "id": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2",
     "alsoKnownAs": [
         "https://alice.example.com/#me",
@@ -219,7 +219,7 @@
           <p>A fully enhanced DID document can include profile information and social relationships:</p>
           <pre class="example">
 {
-    "@context": ["https://www.w3.org/ns/cid/v1", "https://w3id.org/nostr/context"],
+    "@context": ["https://www.w3.org/ns/did/v1", "https://www.w3.org/ns/cid/v1", "https://w3id.org/nostr/context"],
     "id": "did:nostr:124c0fa99407182ece5a24fad9b7f6674902fc422843d3128d38a0afbee0fdd2",
     "alsoKnownAs": [
         "https://alice.example.com/#me",
@@ -277,9 +277,12 @@
           secp256k1 public keys for Data Integrity implementations. This method transforms the x-only 
           BIP-340 public key from the DID identifier into a format compatible with W3C Verifiable 
           Credentials Data Integrity specifications. The <code>Multikey</code> type and the
-          <code>publicKeyMultibase</code> property are defined by Controlled Identifiers v1.0 [[CID]];
-          accordingly, DID documents include <code>https://www.w3.org/ns/cid/v1</code> in their
-          <code>@context</code> so that these terms are well defined under JSON-LD processing.
+          <code>publicKeyMultibase</code> property are defined by Controlled Identifiers v1.0 [[CID]].
+          Accordingly, the <code>@context</code> of a DID document leads with
+          <code>https://www.w3.org/ns/did/v1</code>, as required by [[DID-CORE]], followed by
+          <code>https://www.w3.org/ns/cid/v1</code> so that these terms are well defined under
+          JSON-LD processing. The two contexts define their shared protected terms identically,
+          so they compose without conflict.
         </p>
         
         <p>
